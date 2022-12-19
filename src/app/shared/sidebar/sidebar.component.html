@@ -27,7 +27,11 @@
                                 class="label label-rouded label-themecolor pull-right">{{item.submenu.length}}</span></span></a>
                     <ul aria-expanded="false" class="collapse">
                         <li *ngFor="let submenu of item.submenu">
-                            <a [routerLink]="submenu.url">{{submenu.titulo}} </a>
+                            <a [routerLink]="submenu.url" 
+                               routerLinkActive="active"
+                               [routerLinkActiveOptions]="{exact: true}">
+                               {{submenu.titulo}}
+                            </a>
                         </li>
                     </ul>
                 </li>
