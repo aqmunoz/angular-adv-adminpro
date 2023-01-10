@@ -5,6 +5,7 @@ import { LoginForm } from '../interfaces/login-form.interface';
 import { RegisterForm } from '../interfaces/register-form.interface';
 import { catchError, map, Observable, of, tap, throwError } from 'rxjs';
 import { Router } from '@angular/router';
+import { Usuario } from '../models/usuario.model';
 
 const base_url = environment.base_url;
 
@@ -13,10 +14,20 @@ const base_url = environment.base_url;
 })
 export class UsuarioService {
 
+  public usuario!: Usuario;
+
   constructor(
     private httpClient: HttpClient,
     private router: Router
   ) { }
+
+  get token(): string {
+    return localStorage.getItem('token') ||  '';
+  }
+
+  get uid(): string {
+    return this.usuario.uid || '';
+  }
 
   logout() {
     localStorage.removeItem('token');
@@ -25,22 +36,42 @@ export class UsuarioService {
   }
 
   validarToken (): Observable<boolean> {
-    const token = localStorage.getItem('token') ||  '';
     return this.httpClient.get(`${ base_url }/login/renew`, {
       headers: {
-        'x-token': token
+        'x-token': this.token
       }
     }).pipe(
       tap((resp: any) => {
+        const { nombre, email, role, google, img = '', uid } = resp.usuario;
+        this.usuario = new Usuario( nombre,email, '', img, google, role, uid);
+
         localStorage.setItem('token', resp.token);
+        return true;
       }),
-      map(resp => true),
       catchError(error => of(false))
     );
   }
 
   crearUsuario(formData: RegisterForm) {
-    return this.httpClient.post(`${base_url}/usuarios`, formData);
+    return this.httpClient.post(`${base_url}/usuarios`, formData)
+      .pipe(
+        tap((resp: any) => {
+          localStorage.setItem('token', resp.token);
+        })
+      );
+  }
+
+  actualizarPerfil (data: { email: string, nombre: string, role: string }) {
+
+    data = {
+      ...data,
+      role: this.usuario.role || ''
+    }
+    return this.httpClient.put(`${base_url}/usuarios/${this.uid}`, data, {
+      headers: {
+        'x-token': this.token
+      }
+    });
   }
 
   login(formData: LoginForm) {
