@@ -6,6 +6,7 @@ import { RegisterForm } from '../interfaces/register-form.interface';
 import { catchError, map, Observable, of, tap, throwError } from 'rxjs';
 import { Router } from '@angular/router';
 import { Usuario } from '../models/usuario.model';
+import { CargarUsuarios } from '../interfaces/cargar-usuarios.interface';
 
 const base_url = environment.base_url;
 
@@ -27,6 +28,14 @@ export class UsuarioService {
 
   get uid(): string {
     return this.usuario.uid || '';
+  }
+
+  get headers() {
+    return {
+      headers: {
+        'x-token': this.token
+      }
+    }
   }
 
   logout() {
@@ -67,11 +76,7 @@ export class UsuarioService {
       ...data,
       role: this.usuario.role || ''
     }
-    return this.httpClient.put(`${base_url}/usuarios/${this.uid}`, data, {
-      headers: {
-        'x-token': this.token
-      }
-    });
+    return this.httpClient.put(`${base_url}/usuarios/${this.uid}`, data, this.headers);
   }
 
   login(formData: LoginForm) {
@@ -110,5 +115,31 @@ export class UsuarioService {
         return throwError(() => new Error(msgGeneral));
       })
     );
+  }
+
+  cargarUsuarios(desde: number = 0){
+    const url = `${ base_url }/usuarios?desde=${ desde }`;
+    return this.httpClient.get<CargarUsuarios>( url, this.headers)
+      .pipe(
+        map( resp => {
+          const usuarios = resp.usuarios.map(
+            usuario => new Usuario(usuario.nombre, usuario.email, '', usuario.img, usuario.google, usuario.role, usuario.uid)
+          );
+          return {
+            total: resp.total,
+            usuarios
+          };
+        })
+      );
+  }
+
+  eliminarUsuario( usuario: Usuario ) {
+    const url = `${base_url}/usuarios/${usuario.uid}`;
+    return this.httpClient.delete(url, this.headers);
+  }
+
+  guardarUsuario (usuario: Usuario) {
+
+    return this.httpClient.put(`${base_url}/usuarios/${usuario.uid}`, usuario, this.headers);
   }
 }
